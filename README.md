@@ -17,18 +17,17 @@ Tài liệu chi tiết và toàn bộ script tự động giúp cứu sống (un
 
 ---
 
-## 📷 2. Sơ Đồ Chân & Điểm Boot (Pinout & Test Points)
+## 📷 2. Sơ Đồ Bo Mạch & Nút Boot (Pinout & Hardware)
 
-### Mặt trước bo mạch (Điểm Boot & UART):
+### Mặt trước bo mạch (SoC & Chân UART):
 ![Mặt trước bo mạch](images/board_front_bootpin.jpg)
 
-* **Điểm Boot phụ (Test Point):** Nằm ở mép cạnh mạch gần chip Snapdragon 410 (được nối chung đường với nút BOT).
 * **Chân UART Debug:** Gồm 3 điểm tròn `TX`, `RX`, `GND` (mức logic 1.8V, baudrate 115200). Không bắt buộc dùng vì toàn bộ quá trình cứu boot đều qua cổng USB.
 
 ### Mặt sau bo mạch (Nút bấm BOT, Khay SIM & Anten):
 ![Mặt sau bo mạch](images/board_back_sim_pad.jpg)
 
-* **Nút bấm vật lý `BOT` (Cực kỳ quan trọng ⭐⭐⭐):** Nằm ngay cạnh khay SIM, trên bo mạch có in chữ **`BOT`**. 
+* **Nút bấm vật lý `BOT`:** Nằm ngay cạnh khay SIM, trên bo mạch có in chữ **`BOT`**. 
   > [!TIP]
   > **HOÀN TOÀN KHÔNG CẦN HÀN DÂY!** Bạn chỉ cần **nhấn giữ nút `BOT` này và cắm USB vào máy tính**, chip Snapdragon 410 sẽ lập tức vào chế độ nạp khẩn cấp **Qualcomm HS-USB QDLoader 9008**!
 * **Khay SIM:** Chuẩn Micro SIM.
