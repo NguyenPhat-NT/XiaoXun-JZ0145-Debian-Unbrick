@@ -204,7 +204,7 @@ def step_edl_fix():
     print("=" * 65)
     print("   GIAI DOAN 1: KET NOI QUALCOMM EDL 9008 VA RESET BOOT PARTITION")
     print("=" * 65)
-    print("[*] Dang cho thiet bi o che do EDL 9008 (cham diem boot vao GND khi cam USB)...")
+    print("[*] Dang cho thiet bi o che do EDL 9008 (Nhan giu nut BOT canh khay SIM khi cam USB)...")
 
     m = edl_main(edl_args, imported='')
     m.args["--loader"] = LOADER_PATH

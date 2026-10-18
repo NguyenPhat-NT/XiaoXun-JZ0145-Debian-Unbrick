@@ -22,12 +22,15 @@ Tài liệu chi tiết và toàn bộ script tự động giúp cứu sống (un
 ### Mặt trước bo mạch (Điểm Boot & UART):
 ![Mặt trước bo mạch](images/board_front_bootpin.jpg)
 
-* **Điểm Boot (EDL Test Point):** Nằm ở mép cạnh mạch gần chip Snapdragon 410 (như trong ảnh có dây đen hàn vào). Khi chạm điểm này vào vỏ sắt USB (GND) và cắm điện, máy sẽ bị ép vào chế độ nạp khẩn cấp **Qualcomm HS-USB QDLoader 9008**.
-* **Chân UART Debug:** Gồm 3 điểm tròn `TX`, `RX`, `GND` (mức logic 1.8V, baudrate 115200). Không bắt buộc hàn vì giải pháp này dùng 100% cổng USB.
+* **Điểm Boot phụ (Test Point):** Nằm ở mép cạnh mạch gần chip Snapdragon 410 (được nối chung đường với nút BOT).
+* **Chân UART Debug:** Gồm 3 điểm tròn `TX`, `RX`, `GND` (mức logic 1.8V, baudrate 115200). Không bắt buộc dùng vì toàn bộ quá trình cứu boot đều qua cổng USB.
 
-### Mặt sau bo mạch (Khay SIM & Anten):
+### Mặt sau bo mạch (Nút bấm BOT, Khay SIM & Anten):
 ![Mặt sau bo mạch](images/board_back_sim_pad.jpg)
 
+* **Nút bấm vật lý `BOT` (Cực kỳ quan trọng ⭐⭐⭐):** Nằm ngay cạnh khay SIM, trên bo mạch có in chữ **`BOT`**. 
+  > [!TIP]
+  > **HOÀN TOÀN KHÔNG CẦN HÀN DÂY!** Bạn chỉ cần **nhấn giữ nút `BOT` này và cắm USB vào máy tính**, chip Snapdragon 410 sẽ lập tức vào chế độ nạp khẩn cấp **Qualcomm HS-USB QDLoader 9008**!
 * **Khay SIM:** Chuẩn Micro SIM.
 * **Cụm test pad SIM 2 (eSIM):** `U_DATA`, `U_CLK`, `U_RES`, `U_VREG`.
 * **Đèn LED hiển thị:** 
@@ -66,8 +69,8 @@ Tài liệu chi tiết và toàn bộ script tự động giúp cứu sống (un
 2. Đảm bảo có sẵn thư viện `libusb-1.0.dll` (nằm trong thư mục `edlclient/Windows/`).
 
 ### Bước 2: Nạp phân vùng cứu hộ qua Qualcomm EDL 9008
-1. Chạm dây điểm boot vào vỏ sắt USB (GND) và cắm vào máy tính.
-2. Kiểm tra Device Manager hiện cổng: `Qualcomm HS-USB QDLoader 9008`.
+1. **Nhấn giữ nút `BOT`** trên bo mạch (nằm cạnh khay SIM) và cắm USB vào máy tính.
+2. Kiểm tra Device Manager (hoặc PowerShell) hiện cổng: `Qualcomm HS-USB QDLoader 9008`.
 3. Chạy script cứu hộ:
    ```cmd
    python scripts/auto_recover_and_flash.py
