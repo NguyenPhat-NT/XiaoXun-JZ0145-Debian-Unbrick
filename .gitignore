@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Large binary firmware images (Do not upload to Git)
+*.bin
+*.img
+*.mbn
+*.elf
+*.7z
+*.zip
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
