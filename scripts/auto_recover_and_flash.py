@@ -6,14 +6,44 @@ import usb.core
 import usb.util
 import usb.backend.libusb1 as libusb1
 
-sys.path.insert(0, r"c:\hoc\edl")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR = os.path.dirname(SCRIPT_DIR)
+
+def find_candidate_file(filename, subfolders=None):
+    candidates = []
+    if subfolders:
+        for sf in subfolders:
+            candidates.append(os.path.join(REPO_DIR, "firmware", sf, filename))
+            candidates.append(os.path.join(REPO_DIR, sf, filename))
+    candidates.extend([
+        os.path.join(REPO_DIR, "firmware", filename),
+        os.path.join(REPO_DIR, filename),
+        os.path.join(SCRIPT_DIR, filename),
+        os.path.join(r"C:\hoc", filename),
+        os.path.join(r"C:\hoc\base\base", filename),
+        os.path.join(r"C:\hoc\debian\debian", filename),
+        os.path.join(r"C:\hoc\edl\Loaders\cyanogen", filename),
+        os.path.join(r"C:\hoc\edl\edlclient\Windows", filename),
+    ])
+    for c in candidates:
+        if os.path.exists(c):
+            return os.path.abspath(c)
+    return None
+
+# Find EDL module
+for edl_cand in [os.path.join(REPO_DIR, "edl"), r"C:\hoc\edl", os.path.join(os.path.expanduser("~"), "edl")]:
+    if os.path.exists(os.path.join(edl_cand, "edl.py")) or os.path.exists(os.path.join(edl_cand, "edlclient")):
+        sys.path.insert(0, edl_cand)
+        break
 from edl import main as edl_main, args as edl_args
 
-LIBUSB_PATH = r"C:\hoc\edl\edlclient\Windows\libusb-1.0.dll"
-LOADER_PATH = r"C:\hoc\edl\Loaders\cyanogen\007050e100000000_4e3eefa63a67eb7a_fhprg_peek.bin"
-ZEROS_FILE = r"C:\hoc\base\base\zeros_1sector.bin"
-BOOT_IMG = r"C:\hoc\debian\debian\boot.img"
-ROOTFS_IMG = r"C:\hoc\debian\debian\rootfs.img"
+LIBUSB_PATH = find_candidate_file("libusb-1.0.dll") or r"C:\hoc\edl\edlclient\Windows\libusb-1.0.dll"
+LOADER_PATH = (find_candidate_file("007050e100000000_4e3eefa63a67eb7a_fhprg_peek.bin")
+               or find_candidate_file("prog_emmc_firehose_8916.mbn")
+               or r"C:\hoc\edl\Loaders\cyanogen\007050e100000000_4e3eefa63a67eb7a_fhprg_peek.bin")
+ZEROS_FILE = find_candidate_file("zeros_1sector.bin", ["base"]) or r"C:\hoc\base\base\zeros_1sector.bin"
+BOOT_IMG = find_candidate_file("boot.img", ["debian"]) or r"C:\hoc\debian\debian\boot.img"
+ROOTFS_IMG = find_candidate_file("rootfs.img", ["debian"]) or r"C:\hoc\debian\debian\rootfs.img"
 MAX_PART_BYTES = 180 * 1024 * 1024
 
 class FastbootDevice:

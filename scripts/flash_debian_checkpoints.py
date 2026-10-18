@@ -6,9 +6,31 @@ import usb.core
 import usb.util
 import usb.backend.libusb1 as libusb1
 
-LIBUSB_PATH = r"C:\hoc\edl\edlclient\Windows\libusb-1.0.dll"
-BOOT_IMG = r"C:\hoc\debian\debian\boot.img"
-ROOTFS_IMG = r"C:\hoc\debian\debian\rootfs.img"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR = os.path.dirname(SCRIPT_DIR)
+
+def find_candidate_file(filename, subfolders=None):
+    candidates = []
+    if subfolders:
+        for sf in subfolders:
+            candidates.append(os.path.join(REPO_DIR, "firmware", sf, filename))
+            candidates.append(os.path.join(REPO_DIR, sf, filename))
+    candidates.extend([
+        os.path.join(REPO_DIR, "firmware", filename),
+        os.path.join(REPO_DIR, filename),
+        os.path.join(SCRIPT_DIR, filename),
+        os.path.join(r"C:\hoc", filename),
+        os.path.join(r"C:\hoc\debian\debian", filename),
+        os.path.join(r"C:\hoc\edl\edlclient\Windows", filename),
+    ])
+    for c in candidates:
+        if os.path.exists(c):
+            return os.path.abspath(c)
+    return None
+
+LIBUSB_PATH = find_candidate_file("libusb-1.0.dll") or r"C:\hoc\edl\edlclient\Windows\libusb-1.0.dll"
+BOOT_IMG = find_candidate_file("boot.img", ["debian"]) or r"C:\hoc\debian\debian\boot.img"
+ROOTFS_IMG = find_candidate_file("rootfs.img", ["debian"]) or r"C:\hoc\debian\debian\rootfs.img"
 MAX_PART_BYTES = 180 * 1024 * 1024  # 180 MB per chunk
 
 class FastbootDevice:

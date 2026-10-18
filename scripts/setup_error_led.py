@@ -8,7 +8,7 @@ cmd = """
 cat << 'EOF' > /usr/local/bin/led_monitor.sh
 #!/bin/bash
 # XiaoXun JZ0145 LED Error Indicator
-# Red = 396, Green = 397, Blue = 398
+# Red = 396 (TLMM 6), Green = 397 (TLMM 7), Blue = 398 (TLMM 8)
 
 for g in 396 397 398; do
     if [ ! -d "/sys/class/gpio/gpio$g" ]; then
@@ -17,17 +17,18 @@ for g in 396 397 398; do
     echo out > /sys/class/gpio/gpio$g/direction 2>/dev/null
 done
 
-# Turn off Green and Blue permanently (no annoying lights)
+# Turn off Green and Blue permanently (Stealth mode)
 echo 0 > /sys/class/gpio/gpio397/value
 echo 0 > /sys/class/gpio/gpio398/value
 
 while true; do
-    # Check if network/wifi is healthy
-    if ping -c 1 -W 2 192.168.1.1 >/dev/null 2>&1 || ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
-        # Normal operation: ALL LEDs OFF (Stealth mode)
+    # Kiem tra ket noi Internet thuc te (ping Google DNS 8.8.8.8 hoac Cloudflare 1.1.1.1)
+    # Neu mat 4G / mat Internet (du router van bat) -> BAT DEN DO
+    if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 || ping -c 1 -W 2 1.1.1.1 >/dev/null 2>&1; then
+        # Internet binh thuong: TAT HET DEN
         echo 0 > /sys/class/gpio/gpio396/value
     else
-        # Error (Lost Wi-Fi / Cannot reach network): Turn on RED LED
+        # Mat ket noi Internet: BAT DEN DO CANH BAO
         echo 1 > /sys/class/gpio/gpio396/value
     fi
     sleep 10
@@ -39,7 +40,8 @@ chmod +x /usr/local/bin/led_monitor.sh
 cat << 'EOF' > /etc/systemd/system/jz0145-leds.service
 [Unit]
 Description=XiaoXun JZ0145 LED Error Monitor
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -52,11 +54,12 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
+systemctl enable jz0145-leds.service
 systemctl restart jz0145-leds.service
-systemctl is-active jz0145-leds.service
+echo -n "Enabled: "; systemctl is-enabled jz0145-leds.service
+echo -n "Active: "; systemctl is-active jz0145-leds.service
 """
 
 stdin, stdout, stderr = ssh.exec_command(cmd)
-out = stdout.read().decode('ascii', errors='ignore')
-print('Service state:', out.strip())
+print(stdout.read().decode('ascii', errors='ignore'))
 ssh.close()
