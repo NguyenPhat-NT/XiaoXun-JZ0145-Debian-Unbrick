@@ -3,9 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Large binary firmware images (Do not upload to Git)
+# Large binary firmware images (Do not upload to Git, except prebuilt boot_images/)
 *.bin
 *.img
+!boot_images/*.img
 *.mbn
 *.elf
 *.7z

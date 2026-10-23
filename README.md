@@ -60,13 +60,22 @@ XiaoXun-JZ0145-Debian-Unbrick/
 │   │   └── rootfs.img          (Debian 11 Bullseye Android Sparse Image ~920MB)
 │   └── loaders/            <-- Qualcomm Firehose programmer
 │       └── prog_emmc_firehose_8916.mbn (hoặc loader Cyanogen MSM8916)
+├── boot_images/            <-- Các bản Boot gốc & Ép xung (Overclock + DVFS) đóng gói sẵn
+│   ├── boot_stock_998mhz.img       (Boot gốc 998.4 MHz)
+│   ├── boot_oc_1.09ghz.img         (Ép xung nhẹ 1.094 GHz - Áp gốc 1.15V)
+│   ├── boot_oc_1.21ghz_dvfs.img    (Ép xung 1.210 GHz + Điều áp động DVFS 1.05V-1.325V)
+│   ├── boot_oc_1.36ghz_dvfs.img    (Ép xung 1.363 GHz + Điều áp động DVFS 1.05V-1.362V)
+│   └── boot_oc_1.40ghz_dvfs.img    (Ép xung kịch trần 1.402 GHz + DVFS 1.05V-1.375V)
 ├── scripts/
 │   ├── unbrick_full_bootloader_edl.py  (Khôi phục toàn diện 9 mốc bootloader)
 │   ├── auto_recover_and_flash.py       (Tự động cứu soft-brick & nạp Debian)
 │   ├── flash_debian_checkpoints.py     (Nạp Debian Fastboot từng mốc kiểm tra)
 │   ├── patch_usblib.py                 (Tự động vá lỗi Short Packet trong thư viện edl)
-│   └── setup_error_led.py              (Cấu hình đèn LED báo lỗi mạng)
+│   ├── setup_error_led.py              (Cấu hình đèn LED báo lỗi mạng)
+│   ├── overclock_dvfs_builder.py       (Tự động build boot.img ép xung 1.402 GHz + DVFS)
+│   └── clean_debian_storage.sh         (Dọn dẹp ổ cứng Debian giải phóng ~1.5 GB)
 ├── images/
+├── OVERCLOCK_AND_OPTIMIZE.md           (Tài liệu chi tiết quy trình Ép xung 1.402 GHz & DVFS)
 ├── .gitignore
 └── README.md
 ```
@@ -211,6 +220,38 @@ Hệ thống sẽ có tổng cộng **~1.6 GB bộ nhớ ảo** (191MB ZRAM nén
   ```cmd
   python scripts/setup_error_led.py
   ```
+
+---
+
+## 🔥 7. Ép Xung CPU Lên 1.402 GHz (+40.4%) Kèm Điều Áp Động (Hardware DVFS) & Dọn Ổ Cứng
+
+Mặc định bản ROM OpenStick giới hạn xung nhịp CPU ở **$998.4\text{ MHz}$** và dùng mức điện áp cố định **$1.150\text{V}$** (`regulator-dummy`). Chúng ta có thể mở khóa toàn bộ 10 nấc tần số của bộ khóa pha `a53pll` lên tới **$1,401.6\text{ MHz}$ ($1.402\text{ GHz}$)** kết hợp kích hoạt mạch điều áp động phần cứng **PM8916 Buck `S2` (`vdd-apc`, $1.050\text{V} \leftrightarrow 1.375\text{V}$)** trực tiếp trong Device Tree (`.dtb`).
+
+👉 **Xem tài liệu phân tích kỹ thuật và hướng dẫn chi tiết tại:** [**OVERCLOCK_AND_OPTIMIZE.md**](OVERCLOCK_AND_OPTIMIZE.md)
+
+### Nạp nhanh bản Boot Ép Xung $1.402\text{ GHz}$ + DVFS (Lưu vĩnh viễn trong eMMC):
+- **Qua ADB (khi máy đang chạy bình thường):**
+  ```powershell
+  adb push boot_images/boot_oc_1.40ghz_dvfs.img /tmp/boot_ov.img
+  adb shell "dd if=/tmp/boot_ov.img of=/dev/mmcblk0p12 bs=4096 conv=fsync"
+  adb reboot
+  ```
+- **Hoặc qua chế độ EDL 9008:**
+  ```powershell
+  py -3 edl/edl.py w boot boot_images/boot_oc_1.40ghz_dvfs.img
+  py -3 edl/edl.py reset
+  ```
+- **Tự build file `boot.img` ép xung bằng script Python:**
+  ```powershell
+  pip install fdt
+  py -3 scripts/overclock_dvfs_builder.py -i boot_images/boot_stock_998mhz.img -o boot_oc_1.40ghz_dvfs.img -p 1.40ghz
+  ```
+
+### Dọn dẹp ổ cứng Debian (Giải phóng ~1.5 GB bộ nhớ trống):
+```powershell
+adb push scripts/clean_debian_storage.sh /tmp/clean_debian_storage.sh
+adb shell "bash /tmp/clean_debian_storage.sh"
+```
 
 ---
 
