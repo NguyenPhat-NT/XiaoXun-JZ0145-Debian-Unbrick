@@ -13,10 +13,15 @@ Cài đặt thư viện cần thiết:
 """
 
 import argparse
+import gzip
 import hashlib
 import os
 import struct
+import sys
 import fdt
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 # Bảng cấu hình chuẩn 10 nấc Xung nhịp (Hz) và Điện áp (microvolt)
 # Công thức thanh ghi PM8916 S2 (0x1741): V_uV = 375000 + selector * 12500
@@ -61,7 +66,22 @@ def build_dvfs_boot(input_boot: str, output_boot: str, max_freq: int = 140160000
     dt = fdt.parse_dtb(orig_dtb)
 
     if enable_dvfs:
-        # 1. Khai báo mạch nguồn PM8916 Buck S2 (vdd-apc) dưới /soc/spmi@200f000/pmic@1
+        # 1a. Cô lập duy nhất mạch nguồn S2 (0x1700 = vdd-apc) trong bảng spmi_pm8916_regulators của Image.gz
+        # Tránh việc qcom_spmi-regulator đăng ký trùng lặp L1..L18 (như L9/L5/L7 của Wi-Fi WCN3620 đang do RPM quản lý)
+        # dẫn tới regulator_late_cleanup ngắt nguồn Wi-Fi sau 30 giây khởi động.
+        raw_k = bytearray(gzip.decompress(image_gz))
+        rel1_off = 0xdd6880  # R_AARCH64_RELATIVE cho qcom,pm8916-regulators .data (0xffff800010a00ac0)
+        rel2_off = 0xdd8bf0  # R_AARCH64_RELATIVE cho spmi_pm8916_regulators[2].name ("s3" tại 0xffff800010a031c8)
+        r1_addr, r1_info, r1_addend = struct.unpack('<QQQ', raw_k[rel1_off : rel1_off + 24])
+        if r1_addr == 0xffff800010a00ac0 and r1_addend == 0xffff800010a03178:
+            # Trỏ mảng spmi_pm8916_regulators bắt đầu từ phần tử [1] ("s2" tại 0xffff800010a031a0)
+            raw_k[rel1_off : rel1_off + 24] = struct.pack('<QQQ', r1_addr, r1_info, 0xffff800010a031a0)
+            # Xóa phần tử [2] ("s3") thành sentinel kết thúc mảng (NULL) và xóa relocation của nó
+            raw_k[rel2_off : rel2_off + 24] = b'\x00' * 24
+            raw_k[0xa031c8 : 0xa031f0] = b'\x00' * 40
+            image_gz = gzip.compress(bytes(raw_k), compresslevel=9)
+
+        # 1b. Khai báo mạch nguồn PM8916 Buck S2 (vdd-apc) dưới /soc/spmi@200f000/pmic@1
         pmic1 = dt.get_node('/soc/spmi@200f000/pmic@1')
         if not any(n.name == 'regulators' for n in pmic1.nodes):
             reg_node = fdt.Node('regulators')

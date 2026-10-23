@@ -18,6 +18,7 @@ dpkg --purge linux-image-5.14-sdm845 2>/dev/null || true
 
 echo "=== [3/4] Gỡ bỏ các gói đồ họa/đa phương tiện nặng không dùng trên USB 4G ==="
 export DEBIAN_FRONTEND=noninteractive
+apt-mark manual iw rfkill ethtool wireless-regdb wpasupplicant hostapd network-manager modemmanager dnsmasq-base iptables iproute2 2>/dev/null || true
 apt-get purge -y \
     mpv gmediarender cmake cmake-data tshark wireshark-common libwireshark14 \
     wifite reaver aircrack-ng hcxdumptool hcxtools \

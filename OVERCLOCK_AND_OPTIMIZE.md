@@ -30,8 +30,11 @@ Trong `.dtb` gốc của OpenStick, đường cấp nguồn cho nhân CPU chưa 
 Trong nhân `5.15.0-handsomekernel+`, trình điều khiển **`qcom-spmi-regulator`** (`drivers/regulator/qcom_spmi-regulator.c`) đã được biên dịch sẵn, hỗ trợ điều khiển trực tiếp mạch Buck **`S2` (`VDD_APC` tại địa chỉ SPMI `0x1700`, kiểu `ULT_LO_SMPS` `0x22/0x0d`)** qua thanh ghi `0x1741`:
 $$V_{\text{CPU}} = 375\text{ mV} + (\text{Giá trị thanh ghi }\mathtt{0x1741}) \times 12.5\text{ mV}$$
 
-Bằng cách can thiệp trực tiếp vào Device Tree (`.dtb`) trong `boot.img` thông qua script [`scripts/overclock_dvfs_builder.py`](scripts/overclock_dvfs_builder.py), chúng ta thực hiện **3 thay đổi cốt lõi**:
-1. **Khai báo mạch nguồn `s2` (`vdd-apc`) dưới `/soc/spmi@200f000/pmic@1`:**
+Bằng cách can thiệp trực tiếp vào Kernel (`Image.gz`) và Device Tree (`.dtb`) trong `boot.img` thông qua script [`scripts/overclock_dvfs_builder.py`](scripts/overclock_dvfs_builder.py), chúng ta thực hiện **4 thay đổi cốt lõi**:
+1. **Cô lập duy nhất mạch nguồn `s2` (`0x1700` = `vdd-apc`) trong bảng `spmi_pm8916_regulators` của `Image.gz`:**
+   - Trong `qcom_spmi-regulator.c`, bảng `spmi_pm8916_regulators` mặc định chứa cả 22 mạch nguồn (`s1..s4`, `l1..l18`). Nếu đăng ký toàn bộ trên bus SPMI, sau 30 giây khởi động hàm `regulator_late_cleanup` của nhân Linux sẽ tắt các LDO không có consumer trên nhánh SPMI (như `l9`/`l5`/`l7` vốn đang cấp nguồn cho chip Wi-Fi WCN3620 bên nhánh RPM).
+   - Script tự động sửa điểm relocation `0xdd6880` trỏ thẳng vào phần tử `s2` (`0xffff800010a031a0`) và đặt sentinel kết thúc mảng ngay sau `s2` (`0xdd8bf0` / `0xa031c8`), giúp driver SPMI chỉ đăng ký duy nhất **`vdd-apc` (`s2`)** mà không đụng chạm tới bất kỳ nguồn Wi-Fi/Modem nào của RPM.
+2. **Khai báo mạch nguồn `s2` (`vdd-apc`) dưới `/soc/spmi@200f000/pmic@1`:**
    ```dts
    regulators {
        compatible = "qcom,pm8916-regulators";
@@ -44,8 +47,8 @@ Bằng cách can thiệp trực tiếp vào Device Tree (`.dtb`) trong `boot.img
        };
    };
    ```
-2. **Gắn `cpu-supply = <0x9A>;` vào `/cpus/cpu@0`:** Để `cpufreq-dt` tự động nâng điện áp trước khi tăng xung và hạ điện áp sau khi giảm xung.
-3. **Thiết lập bảng 10 nấc Xung nhịp & Điện áp (`opp-hz` & `opp-microvolt`) trong `/cpu-opp-table`:**
+3. **Gắn `cpu-supply = <0x9A>;` vào `/cpus/cpu@0`:** Để `cpufreq-dt` tự động nâng điện áp trước khi tăng xung và hạ điện áp sau khi giảm xung.
+4. **Thiết lập bảng 10 nấc Xung nhịp & Điện áp (`opp-hz` & `opp-microvolt`) trong `/cpu-opp-table`:**
 
 | Nấc | Tần số (`opp-hz`) | Điện áp (`opp-microvolt`) | Thanh ghi `0x1741` | Ghi chú |
 | :-: | :---: | :---: | :---: | :--- |
@@ -68,9 +71,9 @@ Trong thư mục [`boot_images/`](boot_images/) của repo đã lưu sẵn 5 fil
 
 | Tên file trong `boot_images/` | Mức xung tối đa | Điều áp động (DVFS) | Mã kiểm tra SHA256 |
 | :--- | :---: | :---: | :--- |
-| [`boot_oc_1.40ghz_dvfs.img`](boot_images/boot_oc_1.40ghz_dvfs.img) | **$1.402\text{ GHz}$ (+40.4%)** | Có (`1.05V – 1.375V`) | `0C7AF10D5EAB1B42BC74311103BF1C625DA3D7FFF1EEB88985E297389AA26BD8` |
-| [`boot_oc_1.36ghz_dvfs.img`](boot_images/boot_oc_1.36ghz_dvfs.img) | **$1.363\text{ GHz}$ (+36.5%)** | Có (`1.05V – 1.362V`) | `3FFF4C09C52AC0BE933B84027E560356F75E3D2BADA9BCE3A116EFDE6AE126B1` |
-| [`boot_oc_1.21ghz_dvfs.img`](boot_images/boot_oc_1.21ghz_dvfs.img) | **$1.210\text{ GHz}$ (+21.2%)** | Có (`1.05V – 1.325V`) | `A11783A84ABB9FA0DF8518034B72628E4C0446D7B861DE9223991D96222B3D4B` |
+| [`boot_oc_1.40ghz_dvfs.img`](boot_images/boot_oc_1.40ghz_dvfs.img) | **$1.402\text{ GHz}$ (+40.4%)** | Có (`1.05V – 1.375V`) | `9D75B983E2797BD7409C11E658618B7845244E1F6F17A58AB17CE80953EF77E9` |
+| [`boot_oc_1.36ghz_dvfs.img`](boot_images/boot_oc_1.36ghz_dvfs.img) | **$1.363\text{ GHz}$ (+36.5%)** | Có (`1.05V – 1.362V`) | `79A19634AAC30C5138FA2A6E8A5B3A45E2A06EBB410E50B93EB0478A22A62AC6` |
+| [`boot_oc_1.21ghz_dvfs.img`](boot_images/boot_oc_1.21ghz_dvfs.img) | **$1.210\text{ GHz}$ (+21.2%)** | Có (`1.05V – 1.325V`) | `30E97236E3A88D259327266B8DE522EA7EAE0AEB929C1E7AB692F13DEAC969D6` |
 | [`boot_oc_1.09ghz.img`](boot_images/boot_oc_1.09ghz.img) | **$1.094\text{ GHz}$ (+9.6%)** | Không (Áp gốc `1.15V`) | `1B150747307F6A09A02ACB28621FF241ACDBB8790DE1DE45B780A66007B204BC` |
 | [`boot_stock_998mhz.img`](boot_images/boot_stock_998mhz.img) | **$998.4\text{ MHz}$ (Gốc)** | Không (Áp gốc `1.15V`) | `6C961CF9694594FA3F57A27970B3D552F6903C89471938350C118BE05FA2621D` |
 
@@ -94,9 +97,9 @@ echo gadget > /sys/kernel/debug/ci_hdrc.0/role
 2. **Đẩy bản Boot $1.402\text{ GHz}$ DVFS lên thiết bị và ghi vào phân vùng `/dev/mmcblk0p12`:**
    ```powershell
    adb push boot_images/boot_oc_1.40ghz_dvfs.img /tmp/boot_ov.img
-   adb shell "dd if=/tmp/boot_ov.img of=/dev/mmcblk0p12 bs=4096 conv=fsync; head -c 13588480 /dev/mmcblk0p12 | sha256sum"
+   adb shell "dd if=/tmp/boot_ov.img of=/dev/mmcblk0p12 bs=4096 conv=fsync; head -c 13590528 /dev/mmcblk0p12 | sha256sum"
    ```
-   *(Kiểm tra mã SHA256 in ra khớp với `0c7af10d5eab1b42bc74311103bf1c625da3d7fff1eeb88985e297389aa26bd8`)*.
+   *(Kiểm tra mã SHA256 in ra khớp với `9d75b983e2797bd7409c11e658618b7845244e1f6f17a58ab17ce80953ef77e9`)*.
 3. **Khởi động lại thiết bị:**
    ```powershell
    adb reboot
